@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Escriba — Transcriptor de Prédicas</title>
+<meta name="theme-color" content="#0A2E51">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --paper: #EFE7D6;
+    --paper-dim: #E4DAC4;
+    --ink: #262019;
+    --ink-soft: #5b5347;
+    --brass: #9C7A34;
+    --brass-deep: #7A5F27;
+    --red-live: #8A3324;
+    --green-ok: #3E6B4F;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--paper);
+    background-image: repeating-linear-gradient(0deg, rgba(38,32,25,0.025) 0px, rgba(38,32,25,0.025) 1px, transparent 1px, transparent 34px);
+    color: var(--ink);
+    font-family: 'Source Sans 3', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 28px 16px 60px;
+  }
+  .sheet{ width: 100%; max-width: 640px; }
+  header{
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 14px;
+    margin-bottom: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .brand{ font-family: 'Fraunces', serif; font-weight: 700; font-size: 30px; letter-spacing: -0.01em; user-select: none; }
+  .brand span{ color: var(--brass-deep); font-style: italic; font-weight: 600; }
+  .eyebrow{ font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
+  .btn-ajustes{ background: none; border: 1px solid var(--ink-soft); color: var(--ink-soft); font-size: 16px; border-radius: 3px; padding: 6px 10px; cursor: pointer; }
+  .btn-ajustes:hover{ border-color: var(--ink); color: var(--ink); }
+
+  .estado-cuenta{
+    background: var(--paper-dim); border: 1px solid rgba(38,32,25,0.2); border-radius: 3px;
+    padding: 10px 14px; margin-bottom: 18px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft);
+  }
+  .estado-cuenta strong{ color: var(--green-ok); }
+
+  .dropzone{
+    border: 2px dashed var(--ink-soft); border-radius: 3px; padding: 30px 20px; text-align: center;
+    margin-bottom: 18px; cursor: pointer; background: rgba(255,255,255,0.15);
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .dropzone:hover, .dropzone.drag{ border-color: var(--brass-deep); background: rgba(156,122,52,0.08); }
+  .dropzone .titulo{ font-family: 'Fraunces', serif; font-size: 19px; margin-bottom: 6px; }
+  .dropzone .sub{ font-size: 13px; color: var(--ink-soft); }
+  #fileInput{ display:none; }
+
+  .archivo-info{
+    display:none; align-items:center; justify-content: space-between; gap: 10px;
+    background: var(--paper-dim); border: 1px solid rgba(38,32,25,0.2); border-radius: 3px;
+    padding: 12px 16px; margin-bottom: 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  }
+  .archivo-info .nombre{ color: var(--ink); font-weight: 500; }
+  .archivo-info .peso{ color: var(--ink-soft); }
+  .archivo-info button{ background: none; border: none; color: var(--red-live); cursor: pointer; font-family: inherit; font-size: 12px; text-decoration: underline; }
+
+  .opciones{ display:flex; gap: 14px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft); }
+  select, input[type=text], input[type=password]{
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 7px 8px;
+    border: 1px solid var(--ink-soft); background: var(--paper); color: var(--ink); border-radius: 3px;
+  }
+
+  button.principal{
+    font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 15px; border-radius: 3px;
+    padding: 14px 22px; cursor: pointer; border: 2px solid var(--ink); background: var(--ink); color: var(--paper);
+    width: 100%; margin-bottom: 22px; transition: transform 0.08s ease, background 0.15s ease;
+  }
+  button.principal:hover:not(:disabled){ background: var(--brass-deep); border-color: var(--brass-deep); }
+  button.principal:active{ transform: scale(0.98); }
+  button.principal:disabled{ opacity: 0.4; cursor: default; }
+
+  .progreso-caja{ display:none; margin-bottom: 22px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft); }
+  .barra{ width: 100%; height: 8px; background: var(--paper-dim); border: 1px solid var(--ink-soft); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .barra-rellena{ height: 100%; width: 0%; background: var(--brass); transition: width 0.25s ease; }
+  .barra-rellena.indeterminada{ width: 40%; animation: deslizar 1.4s ease-in-out infinite; }
+  @keyframes deslizar{ 0%{ margin-left: -40%; } 100%{ margin-left: 100%; } }
+
+  .secondary-controls{ display: none; gap: 10px; margin-bottom: 26px; flex-wrap: wrap; }
+  .secondary-controls button{
+    font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 13px; padding: 9px 14px;
+    border-radius: 3px; cursor: pointer; border: 2px solid var(--ink-soft); background: transparent; color: var(--ink-soft);
+  }
+  .secondary-controls button:hover{ border-color: var(--ink); color: var(--ink); }
+
+  .page{ display:none; background: var(--paper-dim); border: 1px solid rgba(38,32,25,0.25); border-radius: 2px; padding: 24px 22px; min-height: 160px; position: relative; }
+  .page::before{ content: ''; position: absolute; top: 0; bottom: 0; left: 46px; width: 1px; background: rgba(138,51,36,0.18); }
+  #transcript{ font-family: 'Fraunces', serif; font-size: 18px; line-height: 2.1; color: var(--ink); white-space: pre-wrap; outline: none; padding-left: 20px; }
+
+  .meta{ display: flex; justify-content: space-between; margin-top: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
+
+  .note{ margin-top: 26px; padding-top: 16px; border-top: 1px solid rgba(38,32,25,0.25); font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
+  .note strong{ color: var(--ink); }
+
+  .unsupported, .aviso-error{
+    background: var(--red-live); color: #EFE7D6; padding: 16px 18px; border-radius: 3px;
+    font-size: 14px; line-height: 1.5; margin-bottom: 20px; display: none;
+  }
+
+  .modanl-hidden{ display:none; }
+  .modal-fondo{ display:none; position: fixed; inset: 0; background: rgba(38,32,25,0.55); align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+  .modal-caja{ background: var(--paper); border-radius: 4px; border: 1px solid rgba(38,32,25,0.3); padding: 24px 22px; width: 100%; max-width: 420px; max-width: 420px; max-height: 88vh; overflow-y: auto; }
+  .modal-caja h2{ font-family: 'Fraunces', serif; font-size: 21px; margin: 0 0 4px; }
+  .modal-caja .sub{ font-size: 12.5px; color: var(--ink-soft); margin-bottom: 16px; line-height: 1.5; }
+  .campo{ margin-bottom: 14px; }
+  .campo label{ display:block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin-bottom: 5px; }
+  .campo select, .campo input[type=text], .campo input[type=password]{ width: 100%; padding: 10px 10px; }
+  .modal-botones{ display:flex; gap: 10px; margin-top: 18px; }
+  .modal-botones button{ flex: 1; font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 14px; padding: 11px; border-radius: 3px; cursor: pointer; border: 2px solid var(--ink); }
+  .modal-botones .guardar{ background: var(--ink); color: var(--paper); }
+  .modal-botones .cerrar{ background: transparent; color: var(--ink); }
+
+  @media (max-width: 480px){
+    .brand{ font-size: 24px; }
+    #transcript{ font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <header>
+    <div>
+      <div class="eyebrow">Transcriptor de audio a texto</div>
+      <div class="brand">El <span>Escriba</span></div>
+      <div id="versionTexto" style="font-size:0.75em; opacity:0.6; margin-top:2px;"></div>
+    </div>
+    <button class="btn-ajustes" id="btnAjustes" title="Ajustes">⚙️</button>
+  </header>
+
+  <div class="estado-cuenta">✓ <strong>Uso libre</strong> — sin límite</div>
+
+  <div class="unsupported" id="avisoSoporte">
+    Falta configurar tu motor de transcripción en la nube. Toca ⚙️ arriba para ingresar tu clave de API.
+  </div>
+  <div class="aviso-error" id="avisoError"></div>
+
+  <div class="dropzone" id="dropzone">
+    <div class="titulo">📼 Sube el audio de tu prédica</div>
+    <div class="sub">Toca aquí para elegir el archivo — MP3, WAV, M4A, OGG</div>
+  </div>
+  <input type="file" id="fileInput" accept="audio/*">
+
+  <div class="archivo-info" id="archivoInfo">
+    <div>
+      <div class="nombre" id="archivoNombre"></div>
+      <div class="peso" id="archivoPeso"></div>
+    </div>
+    <button id="btnQuitar">Quitar</button>
+  </div>
+
+  <div class="opciones">
+    <label for="idiomaSelect">Idioma:</label>
+    <select id="idiomaSelect">
+      <option value="es" selected>Español</option>
+      <option value="">Detectar automáticamente</option>
+      <option value="en">Inglés</option>
+    </select>
+  </div>
+
+  <button class="principal" id="btnTranscribir" disabled>🖋️ Transcribir audio</button>
+
+  <div class="progreso-caja" id="progresoCaja">
+    <span id="progresoTexto">Preparando...</span>
+    <div class="barra"><div class="barra-rellena" id="barraRellena"></div></div>
+  </div>
+
+  <div class="opciones">
+    <span>Motor activo: <strong id="motorActivoTexto">sin configurar</strong></span>
+  </div>
+
+  <div class="secondary-controls" id="secondaryControls">
+    <button id="btnCopiar">Copiar texto</button>
+    <button id="btnDescargar">Descargar .txt</button>
+    <button id="btnNuevo">Transcribir otro audio</button>
+  </div>
+
+  <div class="page" id="pageResultado">
+    <div id="transcript" contenteditable="true"></div>
+  </div>
+  <div class="meta" id="metaResultado" style="display:none;">
+    <span id="contador">0 palabras</span>
+    <span id="duracionAudio"></span>
+  </div>
+
+  <div class="note">
+    <strong>Cómo funciona:</strong> el audio se envía de forma segura a tu propio motor de transcripción en la nube (configurado en ⚙️ Ajustes) y en general tarda menos de 1 minuto por cada 10 minutos de audio, sin importar si usas celular o computador. Puedes editar el texto final tocándolo directamente antes de descargarlo.
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalAjustes">
+  <div class="modal-caja">
+    <h2>⚙️ Motor de transcripción</h2>
+    <div class="sub">Conecta tu propia cuenta de un servicio de transcripción en la nube. Tu clave se guarda solo en este dispositivo, nunca se comparte.</div>
+
+    <div class="campo">
+      <label for="proveedorSelect">Proveedor</label>
+      <select id="proveedorSelect">
+        <option value="groq">Groq, gratis o muy económico (recomendado)</option>
+        <option value="gemini">Google Gemini</option>
+        <option value="openai">OpenAI, whisper-1</option>
+        <option value="custom">Otro, compatible con OpenAI</option>
+      </select>
+    </div>
+    <div class="campo" id="campoGeminiInfo" style="display:none;">
+      <div class="sub" style="margin:0;">Consigue tu clave gratis en aistudio.google.com/apikey con tu cuenta de Google.</div>
+    </div>
+    <div class="campo" id="campoUrl" style="display:none;">
+      <label for="urlInput">URL del endpoint</label>
+      <input type="text" id="urlInput" placeholder="https://.../v1/audio/transcriptions">
+    </div>
+    <div class="campo" id="campoModelo" style="display:none;">
+      <label for="modeloInput">Nombre del modelo</label>
+      <input type="text" id="modeloInput" placeholder="whisper-1">
+    </div>
+    <div class="campo">
+      <label for="apiKeyInput">Clave de API (API key)</label>
+      <input type="password" id="apiKeyInput" placeholder="sk-...">
+    </div>
+    <div class="campo" style="border-top:1px solid #ddd; padding-top:12px; margin-top:4px;">
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal;">
+        <input type="checkbox" id="forzarPesadosCheckbox" style="width:auto;">
+        Forzar servidor para archivos pesados
+      </label>
+      <div class="sub" style="margin:6px 0 0;">Los audios de más de 25 MB se envían automáticamente a un servidor propio (Render) que sí acepta archivos grandes. Activa esta casilla para usarlo siempre, sin importar el tamaño.</div>
+    </div>
+
+    <div class="modal-botones">
+      <button class="cerrar" id="btnCerrarAjustes">Cancelar</button>
+      <button class="guardar" id="btnGuardarAjustes">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const APP_VERSION = '1.0.1';
+const $ = (id) => document.getElementById(id);
+
+const dropzone = $('dropzone'), fileInput = $('fileInput'), archivoInfo = $('archivoInfo');
+const archivoNombre = $('archivoNombre'), archivoPeso = $('archivoPeso'), btnQuitar = $('btnQuitar');
+const btnTranscribir = $('btnTranscribir'), idiomaSelect = $('idiomaSelect');
+const progresoCaja = $('progresoCaja'), progresoTexto = $('progresoTexto'), barraRellena = $('barraRellena');
+const secondaryControls = $('secondaryControls'), pageResultado = $('pageResultado'), transcriptEl = $('transcript');
+const metaResultado = $('metaResultado'), contador = $('contador'), duracionAudio = $('duracionAudio');
+const btnCopiar = $('btnCopiar'), btnDescargar = $('btnDescargar'), btnNuevo = $('btnNuevo');
+const avisoSoporte = $('avisoSoporte'), avisoError = $('avisoError');
+const modalAjustes = $('modalAjustes'), btnAjustes = $('btnAjustes');
+const btnCerrarAjustes = $('btnCerrarAjustes'), btnGuardarAjustes = $('btnGuardarAjustes');
+const proveedorSelect = $('proveedorSelect'), campoUrl = $('campoUrl'), campoModelo = $('campoModelo');
+const campoGeminiInfo = $('campoGeminiInfo'), urlInput = $('urlInput'), modeloInput = $('modeloInput');
+const apiKeyInput = $('apiKeyInput'), forzarPesadosCheckbox = $('forzarPesadosCheckbox');
+const motorActivoTexto = $('motorActivoTexto');
+
+$('versionTexto').textContent = 'v' + APP_VERSION;
+
+let archivoActual = null;
+let duracionSegActual = 0;
+
+// ==================== Proveedores ====================
+const PROVEEDORES = {
+  groq:   { url: 'https://api.groq.com/openai/v1/audio/transcriptions', modelo: 'whisper-large-v3', nombre: 'Groq' },
+  gemini: { url: '', modelo: 'gemini-2.0-flash', nombre: 'Google Gemini' },
+  openai: { url: 'https://api.openai.com/v1/audio/transcriptions', modelo: 'whisper-1', nombre: 'OpenAI' },
+  custom: { url: '', modelo: '', nombre: 'Personalizado' }
+};
+
+// ==================== Servidor para archivos pesados (Render) ====================
+const URL_SERVIDOR_PESADOS = 'https://nuevo-audio-txt.onrender.com/transcribir';
+const UMBRAL_PESADO_BYTES = 25 * 1024 * 1024;
+const FORZAR_PESADOS_KEY = 'escriba_forzar_pesados';
+function cargarForzarPesados(){ return localStorage.getItem(FORZAR_PESADOS_KEY) === '1'; }
+function guardarForzarPesados(v){ localStorage.setItem(FORZAR_PESADOS_KEY, v ? '1' : '0'); }
+
+// ==================== Ajustes de motor ====================
+const ENGINE_KEY = 'escriba_motor_config_v2';
+function cargarTodosMotores(){
+  try{ return JSON.parse(localStorage.getItem(ENGINE_KEY) || '{}'); }catch(e){ return {}; }
+}
+function guardarTodosMotores(obj){ localStorage.setItem(ENGINE_KEY, JSON.stringify(obj)); }
+function cargarMotorActivo(){
+  const todos = cargarTodosMotores();
+  const activo = todos.__activo;
+  if(activo && todos[activo]){
+    return Object.assign({ proveedor: activo }, todos[activo]);
+  }
+  return null;
+}
+
+function actualizarCamposProveedor(){
+  const p = proveedorSelect.value;
+  const guardado = cargarTodosMotores()[p] || {};
+  apiKeyInput.value = guardado.apiKey || '';
+  campoUrl.style.display = p === 'custom' ? 'block' : 'none';
+  campoModelo.style.display = p === 'custom' ? 'block' : 'none';
+  campoGeminiInfo.style.display = p === 'gemini' ? 'block' : 'none';
+  if(p === 'custom'){
+    urlInput.value = guardado.url || '';
+    modeloInput.value = guardado.modelo || '';
+  }
+}
+function abrirAjustes(){
+  const todos = cargarTodosMotores();
+  proveedorSelect.value = todos.__activo || 'groq';
+  forzarPesadosCheckbox.checked = cargarForzarPesados();
+  actualizarCamposProveedor();
+  modalAjustes.style.display = 'flex';
+}
+proveedorSelect.addEventListener('change', actualizarCamposProveedor);
+btnAjustes.addEventListener('click', abrirAjustes);
+btnCerrarAjustes.addEventListener('click', () => { modalAjustes.style.display = 'none'; });
+btnGuardarAjustes.addEventListener('click', () => {
+  const p = proveedorSelect.value;
+  const preset = PROVEEDORES[p];
+  const apiKey = apiKeyInput.value.trim();
+  if(!apiKey){ alert('Ingresa tu clave de API antes de guardar.'); return; }
+  const entrada = {
+    url: p === 'custom' ? urlInput.value.trim() : preset.url,
+    modelo: p === 'custom' ? (modeloInput.value.trim() || 'whisper-1') : preset.modelo,
+    apiKey: apiKey
+  };
+  if(p === 'custom' && !entrada.url){ alert('Falta la URL del endpoint.'); return; }
+  const todos = cargarTodosMotores();
+  todos[p] = entrada;
+  todos.__activo = p;
+  guardarTodosMotores(todos);
+  guardarForzarPesados(forzarPesadosCheckbox.checked);
+  modalAjustes.style.display = 'none';
+  actualizarSoporte();
+  actualizarMotorActivoTexto();
+});
+
+function actualizarSoporte(){
+  const motor = cargarMotorActivo();
+  avisoSoporte.style.display = (!motor || !motor.apiKey) ? 'block' : 'none';
+}
+function actualizarMotorActivoTexto(){
+  const motor = cargarMotorActivo();
+  if(motor && motor.apiKey){
+    motorActivoTexto.textContent = (PROVEEDORES[motor.proveedor] || {}).nombre || motor.proveedor;
+  } else {
+    motorActivoTexto.textContent = 'sin configurar';
+  }
+}
+
+// ==================== Archivo ====================
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  if(e.dataTransfer.files.length) manejarArchivo(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e) => {
+  if(e.target.files.length) manejarArchivo(e.target.files[0]);
+});
+
+function manejarArchivo(file){
+  archivoActual = file;
+  archivoNombre.textContent = file.name;
+  archivoPeso.textContent = (file.size / (1024*1024)).toFixed(1) + ' MB';
+  archivoInfo.style.display = 'flex';
+  dropzone.style.display = 'none';
+  btnTranscribir.disabled = false;
+  avisoError.style.display = 'none';
+
+  const audioTmp = new Audio();
+  audioTmp.preload = 'metadata';
+  audioTmp.onloadedmetadata = () => {
+    duracionSegActual = audioTmp.duration || 0;
+    URL.revokeObjectURL(audioTmp.src);
+  };
+  audioTmp.src = URL.createObjectURL(file);
+}
+
+btnQuitar.addEventListener('click', () => {
+  archivoActual = null;
+  duracionSegActual = 0;
+  fileInput.value = '';
+  archivoInfo.style.display = 'none';
+  dropzone.style.display = 'block';
+  btnTranscribir.disabled = true;
+});
+
+function formatoDuracion(seg){
+  const h = Math.floor(seg/3600);
+  const m = Math.floor((seg%3600)/60);
+  const s = Math.floor(seg%60);
+  return (h>0 ? h+'h ' : '') + m + 'm ' + s + 's';
+}
+
+// ==================== Transcripción ====================
+btnTranscribir.addEventListener('click', () => {
+  if(!archivoActual) return;
+  avisoError.style.display = 'none';
+
+  const motor = cargarMotorActivo();
+  if(!motor || !motor.apiKey){ abrirAjustes(); return; }
+
+  const usarServidorPesados = archivoActual.size > UMBRAL_PESADO_BYTES || cargarForzarPesados();
+
+  btnTranscribir.disabled = true;
+  dropzone.style.display = 'none';
+  progresoCaja.style.display = 'block';
+  pageResultado.style.display = 'none';
+  secondaryControls.style.display = 'none';
+  metaResultado.style.display = 'none';
+
+  barraRellena.classList.remove('indeterminada');
+  barraRellena.style.width = '0%';
+  progresoTexto.textContent = usarServidorPesados ? 'Subiendo audio pesado al servidor...' : 'Subiendo audio...';
+
+  function finalizarConExito(texto){
+    barraRellena.classList.remove('indeterminada');
+    barraRellena.style.width = '100%';
+    progresoTexto.textContent = '¡Transcripción lista!';
+    transcriptEl.textContent = (texto || '').trim();
+    pageResultado.style.display = 'block';
+    secondaryControls.style.display = 'flex';
+    metaResultado.style.display = 'flex';
+    duracionAudio.textContent = duracionSegActual ? ('Audio: ' + formatoDuracion(duracionSegActual)) : '';
+    actualizarContador();
+    btnTranscribir.disabled = false;
+    setTimeout(() => { progresoCaja.style.display = 'none'; }, 1200);
+  }
+
+  function finalizarConError(mensaje){
+    btnTranscribir.disabled = false;
+    progresoCaja.style.display = 'none';
+    dropzone.style.display = archivoActual ? 'none' : 'block';
+    avisoError.textContent = '❌ ' + mensaje;
+    avisoError.style.display = 'block';
+  }
+
+  const idioma = idiomaSelect.value;
+  const form = new FormData();
+  form.append('file', archivoActual);
+
+  if(usarServidorPesados){
+    // El servidor responde con un id y hay que consultar el estado hasta que termine.
+    form.append('engine', motor.proveedor);
+    form.append('apiKey', motor.apiKey);
+    if(idioma) form.append('language', idioma);
+
+    fetch(URL_SERVIDOR_PESADOS, { method: 'POST', body: form })
+      .then(async (resp) => {
+        let data;
+        try{ data = await resp.json(); }catch(e){ data = {}; }
+        if(!resp.ok) throw new Error(data.error || ('Error ' + resp.status + ' al subir el audio.'));
+        return data.id;
+      })
+      .then((id) => {
+        barraRellena.classList.add('indeterminada');
+        progresoTexto.textContent = 'Procesando en el servidor...';
+        const urlEstado = URL_SERVIDOR_PESADOS.replace(/\/transcribir\/?$/, '') + '/estado/' + id;
+
+        const intervalo = setInterval(() => {
+          fetch(urlEstado)
+            .then(async (resp) => {
+              let data;
+              try{ data = await resp.json(); }catch(e){ data = {}; }
+              if(!resp.ok){
+                clearInterval(intervalo);
+                throw new Error(data.error || ('Error ' + resp.status + ' al consultar el estado.'));
+              }
+              if(data.estado === 'procesando'){
+                progresoTexto.textContent = data.progreso || 'Procesando en el servidor...';
+              } else if(data.estado === 'listo'){
+                clearInterval(intervalo);
+                finalizarConExito(data.text);
+              } else if(data.estado === 'error'){
+                clearInterval(intervalo);
+                finalizarConError(data.error || 'Ocurrió un error al transcribir.');
+              }
+            })
+            .catch((err) => {
+              clearInterval(intervalo);
+              finalizarConError(err.message || 'No se pudo consultar el estado del trabajo.');
+            });
+        }, 4000);
+      })
+      .catch((err) => {
+        finalizarConError(err.message || 'No se pudo conectar con el servidor de transcripción.');
+      });
+
+  } else {
+    form.append('model', motor.modelo || 'whisper-1');
+    if(idioma) form.append('language', idioma);
+    form.append('response_format', 'json');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', motor.url, true);
+    xhr.setRequestHeader('Authorization', 'Bearer ' + motor.apiKey);
+
+    xhr.upload.onprogress = (e) => {
+      if(e.lengthComputable){
+        const pct = Math.round((e.loaded / e.total) * 100);
+        barraRellena.style.width = pct + '%';
+        progresoTexto.textContent = 'Subiendo audio... ' + pct + '%';
+        if(pct >= 100){
+          barraRellena.classList.add('indeterminada');
+          progresoTexto.textContent = 'Transcribiendo, esto puede tardar un poco...';
+        }
+      }
+    };
+    xhr.onload = () => {
+      barraRellena.classList.remove('indeterminada');
+      if(xhr.status >= 200 && xhr.status < 300){
+        let resultado;
+        try{ resultado = JSON.parse(xhr.responseE_PLACEHOLDER
+  }
+});
+</script>
+</body>
+</html>
