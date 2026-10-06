@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transcriptor</title>
+<meta name="theme-color" content="#2a473d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Transcriptor">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --ink:#1c2a24;
+    --paper:#f6f4ee;
+    --moss:#3c6255;
+    --moss-dark:#2a473d;
+    --clay:#b5673a;
+    --line:#d9d4c6;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Georgia', 'Iowan Old Style', serif;
+    display:flex;
+    justify-content:center;
+    padding:32px 16px;
+  }
+  .card{ width:100%; max-width:520px; }
+  h1{
+    font-size:1.9rem; font-weight:400; letter-spacing:-0.01em;
+    margin:0 0 4px; color:var(--moss-dark);
+  }
+  .subtitle{ font-size:0.95rem; color:#6b6558; margin:0 0 28px; font-style:italic; }
+  label{ display:block; font-size:0.85rem; color:#6b6558; margin-bottom:6px; }
+  input[type="text"], input[type="password"], select{
+    width:100%; padding:10px 12px; font-family:inherit; font-size:0.95rem;
+    background:#fff; border:1px solid var(--line); border-radius:2px;
+    color:var(--ink); margin-bottom:20px;
+  }
+  .drop-zone{
+    border:2px dashed var(--line); border-radius:4px; padding:32px 16px;
+    text-align:center; color:#6b6558; margin-bottom:20px; background:#fff; cursor:pointer;
+  }
+  .drop-zone.activo{ border-color:var(--moss); background:#f0efe6; }
+  .drop-zone input{ display:none; }
+  .archivo-nombre{ font-size:0.9rem; color:var(--moss-dark); margin-top:8px; }
+  button{
+    width:100%; padding:14px; font-family:inherit; font-size:1rem;
+    border:none; border-radius:2px; cursor:pointer;
+    background:var(--moss); color:#fff; transition:opacity 0.15s ease;
+  }
+  button:active{ opacity:0.8; }
+  button:disabled{ opacity:0.4; cursor:not-allowed; }
+  .status{ margin-top:16px; font-size:0.9rem; color:#6b6558; min-height:20px; line-height:1.5; white-space:pre-line; }
+  .progreso{
+    margin-top:10px; height:6px; background:var(--line); border-radius:3px;
+    overflow:hidden; display:none;
+  }
+  .progreso.activo{ display:block; }
+  .progreso-barra{ height:100%; background:var(--moss); width:0%; transition:width 0.3s ease; }
+  .resultado{ margin-top:24px; }
+  .resultado textarea{
+    width:100%; min-height:260px; padding:16px; font-size:1rem; font-family:inherit;
+    line-height:1.6; color:var(--ink); background:#fff; border:1px solid var(--line);
+    border-radius:2px; resize:vertical;
+  }
+  .acciones{ display:flex; gap:10px; margin-top:10px; }
+  .acciones button{ background:transparent; color:var(--moss-dark); border:1px solid var(--moss); }
+  .nota{ font-size:0.78rem; color:#8a8474; margin:4px 0 20px; line-height:1.4; }
+  .fila{ display:flex; gap:10px; }
+  .fila > div{ flex:1; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div style="display:flex; align-items:center; gap:14px; margin-bottom:4px;">
+    <h1 style="margin:0;">Transcriptor</h1>
+  </div>
+  <p class="subtitle">Sube una grabación de audio o video y recibe el texto completo.</p>
+
+  <label for="servidor">URL de tu servidor en Render</label>
+  <input type="text" id="servidor" placeholder="https://tu-servicio.onrender.com">
+
+  <div class="fila">
+    <div>
+      <label for="motor">Motor</label>
+      <select id="motor">
+        <option value="groq">Groq (whisper-large-v3)</option>
+        <option value="openai">OpenAI (whisper-1)</option>
+      </select>
+    </div>
+    <div>
+      <label for="idioma">Idioma (opcional)</label>
+      <input type="text" id="idioma" placeholder="es">
+    </div>
+  </div>
+
+  <label for="apikey">Clave de API</label>
+  <input type="password" id="apikey" placeholder="Tu clave de Groq u OpenAI">
+  <p class="nota">La URL y el motor se recuerdan en este navegador. La clave de API también se guarda localmente en tu teléfono para que no tengas que escribirla cada vez; no se envía a ningún lado más que a tu propio servidor.</p>
+
+  <div class="drop-zone" id="drop-zone">
+    <span id="drop-texto">Toca aquí para elegir un archivo de audio o video</span>
+    <input type="file" id="archivo" accept="audio/*,video/mp4,.mp4">
+    <div class="archivo-nombre" id="archivo-nombre"></div>
+  </div>
+
+  <button id="enviar">Transcribir</button>
+
+  <div class="progreso" id="progreso">
+    <div class="progreso-barra" id="progreso-barra"></div>
+  </div>
+  <p class="status" id="status"></p>
+
+  <div class="resultado" id="resultado" style="display:none;">
+    <textarea id="texto-resultado" readonly></textarea>
+    <div class="acciones">
+      <button id="copiar">Copiar texto</button>
+      <button id="descargar">Descargar .txt</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const servidorEl = document.getElementById('servidor');
+const motorEl = document.getElementById('motor');
+const idiomaEl = document.getElementById('idioma');
+const apikeyEl = document.getElementById('apikey');
+const dropZone = document.getElementById('drop-zone');
+const dropTexto = document.getElementById('drop-texto');
+const archivoEl = document.getElementById('archivo');
+const archivoNombreEl = document.getElementById('archivo-nombre');
+const enviarBtn = document.getElementById('enviar');
+const statusEl = document.getElementById('status');
+const progresoEl = document.getElementById('progreso');
+const progresoBarraEl = document.getElementById('progreso-barra');
+const resultadoEl = document.getElementById('resultado');
+const textoResultadoEl = document.getElementById('texto-resultado');
+const copiarBtn = document.getElementById('copiar');
+const descargarBtn = document.getElementById('descargar');
+
+// Recordar valores entre visitas
+function cargar(id, el, campo){
+  const v = localStorage.getItem(id);
+  if (v) el[campo] = v;
+}
+cargar('ts_servidor', servidorEl, 'value');
+cargar('ts_motor', motorEl, 'value');
+cargar('ts_idioma', idiomaEl, 'value');
+cargar('ts_apikey', apikeyEl, 'value');
+
+servidorEl.addEventListener('change', () => localStorage.setItem('ts_servidor', servidorEl.value.trim()));
+motorEl.addEventListener('change', () => localStorage.setItem('ts_motor', motorEl.value));
+idiomaEl.addEventListener('change', () => localStorage.setItem('ts_idioma', idiomaEl.value.trim()));
+apikeyEl.addEventListener('change', () => localStorage.setItem('ts_apikey', apikeyEl.value.trim()));
+
+let archivoSeleccionado = null;
+
+dropZone.addEventListener('click', () => archivoEl.click());
+
+archivoEl.addEventListener('change', () => {
+  if (archivoEl.files.length > 0) {
+    archivoSeleccionado = archivoEl.files[0];
+    const mb = (archivoSeleccionado.size / (1024*1024)).toFixed(1);
+    archivoNombreEl.textContent = archivoSeleccionado.name + ' (' + mb + ' MB)';
+    dropTexto.textContent = 'Archivo listo, toca para cambiarlo';
+  }
+});
+
+function esperar(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+// Sube el archivo con XHR para tener progreso real de subida (útil en archivos pesados)
+function subirConProgreso(url, formData, onProgreso){
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgreso(e.loaded / e.total);
+    };
+    xhr.onload = () => {
+      let data = {};
+      try { data = JSON.parse(xhr.responseText); } catch(e) {}
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+      else reject(new Error(data.error || ('Código ' + xhr.status)));
+    };
+    xhr.onerror = () => reject(new Error('No se pudo conectar con el servidor. Si lleva rato dormido, espera un minuto y vuelve a intentar.'));
+    xhr.send(formData);
+  });
+}
+
+enviarBtn.addEventListener('click', async () => {
+  const servidor = servidorEl.value.trim().replace(/\/$/, '');
+  const motor = motorEl.value;
+  const idioma = idiomaEl.value.trim();
+  const apiKey = apikeyEl.value.trim();
+
+  if (!servidor) { statusEl.textContent = 'Pega la URL de tu servidor primero.'; return; }
+  if (!archivoSeleccionado) { statusEl.textContent = 'Elige un archivo de audio o video primero.'; return; }
+  if (!apiKey) { statusEl.textContent = 'Pega tu clave de API primero.'; return; }
+
+  enviarBtn.disabled = true;
+  resultadoEl.style.display = 'none';
+  progresoEl.classList.add('activo');
+  progresoBarraEl.style.width = '2%';
+  statusEl.textContent = 'Despertando el servidor y subiendo el archivo...\nSi el servidor estaba dormido, esto puede tardar un minuto.';
+
+  const formData = new FormData();
+  formData.append('file', archivoSeleccionado);
+  formData.append('engine', motor);
+  formData.append('apiKey', apiKey);
+  if (idioma) formData.append('language', idioma);
+
+  try {
+    const data = await subirConProgreso(`${servidor}/transcribir`, formData, (frac) => {
+      progresoBarraEl.style.width = Math.round(frac * 40) + '%';
+      statusEl.textContent = 'Subiendo archivo... ' + Math.round(frac * 100) + '%';
+    });
+
+    if (!data.id) throw new Error('El servidor no devolvió un identificador de trabajo.');
+
+    statusEl.textContent = 'Archivo recibido. Procesando en el servidor...';
+    progresoBarraEl.style.width = '45%';
+
+    // Preguntar el estado periódicamente
+    let listo = false;
+    let intentos = 0;
+    while (!listo) {
+      await esperar(3000);
+      intentos++;
+      const resp = await fetch(`${servidor}/estado/${data.id}`);
+      const estadoData = await resp.json();
+
+      if (estadoData.estado === 'procesando') {
+        statusEl.textContent = estadoData.progreso || 'Procesando...';
+        const avance = Math.min(45 + intentos * 3, 95);
+        progresoBarraEl.style.width = avance + '%';
+      } else if (estadoData.estado === 'listo') {
+        progresoBarraEl.style.width = '100%';
+        textoResultadoEl.value = estadoData.text || '';
+        resultadoEl.style.display = 'block';
+        statusEl.textContent = 'Listo.';
+        listo = true;
+      } else if (estadoData.estado === 'error') {
+        throw new Error(estadoData.error || 'Error al procesar el audio.');
+      } else {
+        throw new Error('Respuesta inesperada del servidor.');
+      }
+    }
+  } catch (err) {
+    statusEl.textContent = 'Error: ' + err.message;
+  } finally {
+    enviarBtn.disabled = false;
+    setTimeout(() => {
+      progresoEl.classList.remove('activo');
+      progresoBarraEl.style.width = '0%';
+    }, 800);
+  }
+});
+
+copiarBtn.addEventListener('click', async () => {
+  await navigator.clipboard.writeText(textoResultadoEl.value);
+  statusEl.textContent = 'Texto copiado.';
+});
+
+descargarBtn.addEventListener('click', () => {
+  const blob = new Blob([textoResultadoEl.value], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'transcripcion.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
